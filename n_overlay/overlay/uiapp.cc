@@ -488,22 +488,22 @@ LRESULT UiApp::hookWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
             return 0;
         }
 
-        if ((Msg >= WM_KEYFIRST && Msg <= WM_KEYLAST)
-            || (Msg >= WM_SYSKEYDOWN && Msg <= WM_SYSDEADCHAR))
-        {
-            bool inputHandled = HookApp::instance()->overlayConnector()->processkeyboardMessage(Msg, wParam, lParam);
-            if (inputHandled)
-            {
-                /*if (Msg == WM_KEYDOWN)
-                {
-                    if (!HookApp::instance()->overlayConnector()->directMessageInput())
-                    {
-                        TranslateMessage(pMsg);
-                    }
-                }*/
-            }
-            return 0;
-        }
+        // if ((Msg >= WM_KEYFIRST && Msg <= WM_KEYLAST)
+        //     || (Msg >= WM_SYSKEYDOWN && Msg <= WM_SYSDEADCHAR))
+        // {
+        //     bool inputHandled = HookApp::instance()->overlayConnector()->processkeyboardMessage(Msg, wParam, lParam);
+        //     if (inputHandled)
+        //     {
+        //         /*if (Msg == WM_KEYDOWN)
+        //         {
+        //             if (!HookApp::instance()->overlayConnector()->directMessageInput())
+        //             {
+        //                 TranslateMessage(pMsg);
+        //             }
+        //         }*/
+        //     }
+        //     return 0;
+        // }
     }
 
     return CallWindowProc(oldWndProc_, hWnd, Msg, wParam, lParam);
@@ -578,23 +578,23 @@ LRESULT UiApp::hookGetMsgProc(_In_ int nCode, _In_ WPARAM wParam, _In_ LPARAM lP
                     }
                 }
 
-                if ((pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST)
-                    || (pMsg->message >= WM_SYSKEYDOWN && pMsg->message <= WM_SYSDEADCHAR))
-                {
-                    bool inputHandled = HookApp::instance()->overlayConnector()->processkeyboardMessage(pMsg->message, pMsg->wParam, pMsg->lParam);
-                    if (inputHandled)
-                    {
-                        // if (pMsg->message == WM_KEYDOWN)
-                        // {
-                        //     if (!HookApp::instance()->overlayConnector()->directMessageInput())
-                        //     {
-                        //         TranslateMessage(pMsg);
-                        //     }
-                        // }
-                        pMsg->message = WM_NULL;
-                    }
-                    return 0;
-                }
+                // if ((pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST)
+                //     || (pMsg->message >= WM_SYSKEYDOWN && pMsg->message <= WM_SYSDEADCHAR))
+                // {
+                //     bool inputHandled = HookApp::instance()->overlayConnector()->processkeyboardMessage(pMsg->message, pMsg->wParam, pMsg->lParam);
+                //     if (inputHandled)
+                //     {
+                //         // if (pMsg->message == WM_KEYDOWN)
+                //         // {
+                //         //     if (!HookApp::instance()->overlayConnector()->directMessageInput())
+                //         //     {
+                //         //         TranslateMessage(pMsg);
+                //         //     }
+                //         // }
+                //         pMsg->message = WM_NULL;
+                //     }
+                //     return 0;
+                // }
             }
         }
     }
