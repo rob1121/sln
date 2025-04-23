@@ -366,6 +366,11 @@ bool OverlayConnector::processMouseMessage(UINT message, WPARAM wParam, LPARAM l
 
                         //SetWindowPos((HWND)window->nativeHandle, NULL, window->rect.x, window->rect.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 
+                        // modified: exposed window.bounds
+                        overlay::WindowBounds message;
+                        message.windowId = window->windowId;
+                        message.rect = window->rect;
+                        _sendMessage(&message);
                         this->windowBoundsEvent()(dragMoveWindowId_, window->rect);
                     }
                     else
@@ -412,6 +417,11 @@ bool OverlayConnector::processMouseMessage(UINT message, WPARAM wParam, LPARAM l
 
                         //SetWindowPos((HWND)window->nativeHandle, NULL, window->rect.x, window->rect.y, window->rect.width, window->rect.height, SWP_NOZORDER | SWP_NOACTIVATE);
 
+                        // modified: exposed window.bounds
+                        overlay::WindowBounds message;
+                        message.windowId = window->windowId;
+                        message.rect = window->rect;
+                        _sendMessage(&message);
                         this->windowBoundsEvent()(dragMoveWindowId_, window->rect);
                     }
                     return true;
@@ -751,7 +761,7 @@ void OverlayConnector::translateWindowsToGameClient()
 
 void OverlayConnector::translateWindowsToGameClient(const std::shared_ptr<overlay::Window>& window)
 {
-    /*auto screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    auto screenWidth = GetSystemMetrics(SM_CXSCREEN);
     auto screenHeight = GetSystemMetrics(SM_CYSCREEN);
     auto gameWidth = HookApp::instance()->uiapp()->gameWidth();
     auto gameHeight = HookApp::instance()->uiapp()->gameHeight();
@@ -762,7 +772,7 @@ void OverlayConnector::translateWindowsToGameClient(const std::shared_ptr<overla
     auto yscale = (float)gameHeight / (float)screenHeight;
 
     auto x = window->rect.x;
-    auto y = window->rect.y;*/
+    auto y = window->rect.y;
 
     //SetWindowPos((HWND)window->nativeHandle, nullptr, (int)(x * xscale), (int)(y * yscale), 0, 0, SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
 }
@@ -897,11 +907,20 @@ void OverlayConnector::_sendInputIntercept(bool v)
 
 void OverlayConnector::_sendGameWindowInput(std::uint32_t windowId, UINT msg, WPARAM wparam, LPARAM lparam)
 {
+    
+    auto it = std::find_if(windows_.begin(), windows_.end(), [&](const auto &window) {
+        return windowId == window->windowId;
+    });
+    
+    auto window = *it;
+    
     overlay::GameInput message;
     message.windowId = windowId;
     message.msg = msg;
     message.wparam = wparam;
     message.lparam = lparam;
+    message.x = window ? window->rect.x : 0;
+    message.y = window ? window->rect.y : 0;
 
     _sendMessage(&message);
 }
@@ -1226,6 +1245,11 @@ void OverlayConnector::_onWindowBounds(std::shared_ptr<overlay::WindowBounds>& o
             this->frameBufferUpdateEvent()(overlayMsg->windowId);
         }
 
+        // modified: exposed window.bounds
+        overlay::WindowBounds message;
+        message.windowId = window->windowId;
+        message.rect = window->rect;
+        _sendMessage(&message);
         this->windowBoundsEvent()(overlayMsg->windowId, overlayMsg->rect);
     }
 }

@@ -412,9 +412,11 @@ struct GameInput : public GMessage
     std::uint32_t msg;
     std::uint32_t wparam;
     std::uint32_t lparam;
+    std::uint32_t x;
+    std::uint32_t y;
 };
 
-JSON_AUTO(GameInput, type, windowId, msg, wparam, lparam)
+JSON_AUTO(GameInput, type, windowId, msg, wparam, lparam, x,  y)
 
 struct InGameHotkeyDown : public GMessage
 {
