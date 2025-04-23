@@ -692,7 +692,7 @@ bool UiApp::checkHotkey()
 #if defined(_DEBUG) || defined(DEBUG)
     if (Windows::OrginalApi::GetAsyncKeyState(VK_F1))
     {
-        toggleInputIntercept();
+        // toggleInputIntercept();
         return true;
     }
 #endif
