@@ -16,9 +16,12 @@ class UiApp : public Storm::Trackable<>
     RECT windowClientRect_ = {};
 
     bool isIntercepting_ = false;
+    bool isKeyboardIntercepting_ = false;  // Add separate flag for keyboard interception
 
     std::mutex taskLock_;
     std::deque<std::function<void()>> tasks_;
+
+    BYTE keyboardState_[256] = {}; // Add keyboard state buffer
 
 #if ALLOW_ASSOC_SYSIME
     HIMC IMC_ = nullptr;

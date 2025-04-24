@@ -130,7 +130,7 @@ void UiApp::async(const std::function<void()>& task)
 
 void UiApp::toggleInputIntercept()
 {
-    if (isIntercepting_)
+    if (isKeyboardIntercepting_)
     {
         stopInputIntercept();
     }
@@ -146,8 +146,9 @@ void UiApp::startInputIntercept()
 
     if (session::overlayEnabled())
     {
-        if (!isIntercepting_)
+        if (!isKeyboardIntercepting_)
         {
+            isKeyboardIntercepting_ = true;
             isIntercepting_ = true;
 
             if (session::isWindowed())
@@ -161,20 +162,9 @@ void UiApp::startInputIntercept()
 #endif
             }
 
-            session::inputHook()->saveInputState();
+            // Only save keyboard state
+            GetKeyboardState(keyboardState_);
             HookApp::instance()->overlayConnector()->sendInputIntercept();
-
-            POINT pt{};
-            Windows::OrginalApi::GetCursorPos(&pt);
-            LPARAM lParam = 0;
-            lParam = pt.x + (pt.y << 16);
-            HookApp::instance()->overlayConnector()->processNCHITTEST(WM_NCHITTEST, 0, lParam);
-            HookApp::instance()->overlayConnector()->processSetCursor();
-
-
-#if AUTO_INPUT_INTERCEPT
-            stopAutoIntercept();
-#endif
         }
     }
 }
@@ -185,8 +175,9 @@ void UiApp::stopInputIntercept()
 
     if (session::overlayEnabled())
     {
-        if (isIntercepting_)
+        if (isKeyboardIntercepting_)
         {
+            isKeyboardIntercepting_ = false;
             isIntercepting_ = false;
 
 #if ALLOW_ASSOC_SYSIME
@@ -205,7 +196,13 @@ void UiApp::stopInputIntercept()
                 IMC_ = nullptr;
             }
 #endif
-            session::inputHook()->restoreInputState();
+            // Only handle keyboard state release
+            for (int i = 8; i < 256; i++) { // Start from 8 to skip mouse buttons
+                if (keyboardState_[i] & 0x80) {
+                    keybd_event(i, 0, KEYEVENTF_KEYUP, 0);
+                }
+            }
+
             HookApp::instance()->overlayConnector()->sendInputStopIntercept();
         }
     }
@@ -239,31 +236,22 @@ void UiApp::stopAutoIntercept()
 
 bool UiApp::shouldBlockOrginalMouseInput()
 {
-#if AUTO_INPUT_INTERCEPT
-    //return isInterceptingMouseAuto_ || isIntercepting_;
-    return isIntercepting_;
-#else
-    return isIntercepting_;
-#endif
+    return false; // Never block mouse input
 }
 
 bool UiApp::shouldBlockOrginalKeyInput()
 {
-#if AUTO_INPUT_INTERCEPT
-    return (isInterceptingMouseAuto_ && HookApp::instance()->overlayConnector()->focusWindowId() != 0) || isIntercepting_;
-#else
-    return isIntercepting_;
-#endif
+    return isKeyboardIntercepting_; // Only block keyboard when intercepting keyboard
 }
 
 bool UiApp::shouldBlockOrginalCursorViz()
 {
-    return isIntercepting_;
+    return false; // Never block cursor visibility
 }
 
 bool UiApp::isInterceptingInput()
 {
-    return isIntercepting_;
+    return isKeyboardIntercepting_; // Only consider keyboard interception
 }
 
 #if AUTO_INPUT_INTERCEPT
@@ -436,7 +424,7 @@ LRESULT UiApp::hookWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
     }
     else if (Msg == WM_NCHITTEST)
     {
-        if (isIntercepting_)
+        if (isKeyboardIntercepting_)
         {
             HookApp::instance()->overlayConnector()->processNCHITTEST(Msg, wParam, lParam);
         }
@@ -450,7 +438,7 @@ LRESULT UiApp::hookWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 
     if (session::graphicsActive())
     {
-        if (!isIntercepting_)
+        if (!isKeyboardIntercepting_)
         {
 
 #if AUTO_INPUT_INTERCEPT
@@ -468,7 +456,7 @@ LRESULT UiApp::hookWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
         {
             POINTS pt = MAKEPOINTS(lParam);
 #if AUTO_INPUT_INTERCEPT
-            if (!HookApp::instance()->overlayConnector()->processMouseMessage(Msg, wParam, lParam, isIntercepting_))
+            if (!HookApp::instance()->overlayConnector()->processMouseMessage(Msg, wParam, lParam, isInterceptingMouseAuto_))
 #else
             if (!HookApp::instance()->overlayConnector()->processMouseMessage(Msg, wParam, lParam))
 #endif // AUTO_INPUT_INTERCEPT
@@ -540,7 +528,7 @@ LRESULT UiApp::hookGetMsgProc(_In_ int nCode, _In_ WPARAM wParam, _In_ LPARAM lP
                     }
                 }
 
-                if (!isIntercepting_)
+                if (!isKeyboardIntercepting_)
                 {
                     
 #if AUTO_INPUT_INTERCEPT
@@ -561,7 +549,7 @@ LRESULT UiApp::hookGetMsgProc(_In_ int nCode, _In_ WPARAM wParam, _In_ LPARAM lP
                     if (overlay_game::pointInRect(pt, windowClientRect_))
                     {
 #if AUTO_INPUT_INTERCEPT
-                        if (!HookApp::instance()->overlayConnector()->processMouseMessage(pMsg->message, pMsg->wParam, pMsg->lParam, isIntercepting_))
+                        if (!HookApp::instance()->overlayConnector()->processMouseMessage(pMsg->message, pMsg->wParam, pMsg->lParam, isInterceptingMouseAuto_))
 #else
                         if (!HookApp::instance()->overlayConnector()->processMouseMessage(pMsg->message, pMsg->wParam, pMsg->lParam))
 #endif // AUTO_INPUT_INTERCEPT
@@ -650,7 +638,7 @@ LRESULT UiApp::hookCallWndProc(_In_ int nCode, _In_ WPARAM wParam, _In_ LPARAM l
             }
             else if (cwp->message == WM_NCHITTEST)
             {
-                if (isIntercepting_)
+                if (isKeyboardIntercepting_)
                 {
                     HookApp::instance()->overlayConnector()->processNCHITTEST(cwp->message, cwp->wParam, cwp->lParam);
                 }
@@ -720,7 +708,7 @@ void UiApp::_runTask()
 
 bool UiApp::_setCusror()
 {
-    if (isIntercepting_)
+    if (isKeyboardIntercepting_)
     {
         if (HookApp::instance()->overlayConnector()->processSetCursor())
         {
@@ -740,4 +728,3 @@ bool UiApp::_setCusror()
 
     return false;
 }
-
